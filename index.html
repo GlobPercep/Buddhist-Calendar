@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Buddhist Calendar</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     background: #1c1917;
     font-family: 'DM Sans', system-ui, sans-serif;
@@ -18,6 +18,7 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 20px;
   }
   ::-webkit-scrollbar { display: none; }
@@ -25,6 +26,7 @@
     width: 390px;
     height: 844px;
     max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
     background: #FFFBF5;
     border-radius: 44px;
     border: 10px solid #111;
@@ -45,13 +47,25 @@
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-bottom: 95px;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     -webkit-overflow-scrolling: touch;
   }
   @media (max-width: 430px) {
-    body { padding: 0; background: #FFFBF5; }
-    .phone { width: 100%; height: 100vh; max-height: 100vh; border: none; border-radius: 0; box-shadow: none; }
+    html, body { overflow: auto; }
+    body { padding: 0; background: #FFFBF5; min-height: 100vh; min-height: 100dvh; }
+    .phone {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      border: none; border-radius: 0; box-shadow: none;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    }
     .notch { display: none; }
+    .screen {
+      padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+    }
   }
 </style>
 </head>
@@ -212,96 +226,68 @@ function getLunarMonthName(date) {
 }
 
 // ── Build Events for Current Year ──
-function buildEvents() {
-  const now = new Date();
-  const year = now.getFullYear();
+function buildEventsForYear(year) {
   const holidays = getBuddhistHolidays(year);
-  const be = year + 543;
   const events = [];
-  let id = 1;
 
-  if (holidays.maghaPuja) {
-    events.push({
-      id: id++, name: 'Magha Puja', subtitle: 'Sangha Day',
-      date: holidays.maghaPuja.date, dateStr: fmtDate(holidays.maghaPuja.date),
-      color: T.purple, colorLight: T.purpleLight, icon: '🪷', type: 'magha',
+  const EVENT_TEMPLATES = [
+    { key: 'maghaPuja', name: 'Magha Puja', subtitle: 'Sangha Day', color: T.purple, colorLight: T.purpleLight, icon: '🪷', type: 'magha',
       desc: 'Magha Puja commemorates the spontaneous gathering of 1,250 Arahants who came to hear the Buddha teach the Ovada-Patimokkha \u2014 the heart of Buddhist teaching. It falls on the full moon of the third lunar month.',
-      reminder: true,
-    });
-  }
-
-  if (holidays.vesak) {
-    events.push({
-      id: id++, name: 'Vesak', subtitle: 'Triple Gem Day',
-      date: holidays.vesak.date, dateStr: fmtDate(holidays.vesak.date),
-      color: T.saffron, colorLight: T.saffronLight, icon: '☸️', type: 'vesak',
+      getDate: (h) => h.maghaPuja ? h.maghaPuja.date : null, reminder: true },
+    { key: 'vesak', name: 'Vesak', subtitle: 'Triple Gem Day', color: T.saffron, colorLight: T.saffronLight, icon: '☸️', type: 'vesak',
       desc: 'Vesak celebrates the birth, enlightenment (Bodhi), and passing (Parinirvana) of Gautama Buddha. It falls on the full moon of the fourth lunar month \u2014 the holiest day in the Buddhist year.',
-      reminder: true,
-    });
-  }
-
-  if (holidays.asalhaPuja) {
-    events.push({
-      id: id++, name: 'Asalha Puja', subtitle: 'Dharma Day',
-      date: holidays.asalhaPuja.date, dateStr: fmtDate(holidays.asalhaPuja.date),
-      color: T.blue, colorLight: T.blueLight, icon: '📿', type: 'dharma',
+      getDate: (h) => h.vesak ? h.vesak.date : null, reminder: true },
+    { key: 'asalhaPuja', name: 'Asalha Puja', subtitle: 'Dharma Day', color: T.blue, colorLight: T.blueLight, icon: '📿', type: 'dharma',
       desc: "Asalha Puja (Dharma Day) commemorates the Buddha's first teaching \u2014 the Dhammacakkappavattana Sutta \u2014 to the five ascetics in the Deer Park at Isipatana, setting the Wheel of Dhamma in motion.",
-      reminder: true,
-    });
-  }
-
-  if (holidays.vassaStart) {
-    events.push({
-      id: id++, name: 'Vassa Begins', subtitle: 'Rains Retreat',
-      date: holidays.vassaStart, dateStr: fmtDate(holidays.vassaStart),
-      color: T.teal, colorLight: T.tealLight, icon: '🌧️', type: 'vassa',
+      getDate: (h) => h.asalhaPuja ? h.asalhaPuja.date : null, reminder: true },
+    { key: 'vassaStart', name: 'Vassa Begins', subtitle: 'Rains Retreat', color: T.teal, colorLight: T.tealLight, icon: '🌧️', type: 'vassa',
       desc: 'Vassa is the three-month Rains Retreat observed by Theravada monastics. Monks and nuns remain within a fixed location for three lunar months, engaging in intensive meditation practice.',
-      reminder: true,
-    });
-  }
-
-  if (holidays.ullambana) {
-    events.push({
-      id: id++, name: 'Ullambana', subtitle: 'Ancestral Offering Day',
-      date: holidays.ullambana.date, dateStr: fmtDate(holidays.ullambana.date),
-      color: T.rose, colorLight: T.roseLight, icon: '🕯️', type: 'ullambana',
+      getDate: (h) => h.vassaStart, reminder: true },
+    { key: 'ullambana', name: 'Ullambana', subtitle: 'Ancestral Offering Day', color: T.rose, colorLight: T.roseLight, icon: '🕯️', type: 'ullambana',
       desc: 'Ullambana is observed on the full moon of the seventh lunar month. Practitioners make offerings, chant sutras, and dedicate merit to ancestors and wandering spirits.',
-      reminder: false,
-    });
-  }
-
-  if (holidays.pavarana) {
-    events.push({
-      id: id++, name: 'Pavarana', subtitle: 'Vassa Ends',
-      date: holidays.pavarana.date, dateStr: fmtDate(holidays.pavarana.date),
-      color: T.teal, colorLight: T.tealLight, icon: '🌤️', type: 'vassa',
+      getDate: (h) => h.ullambana ? h.ullambana.date : null, reminder: false },
+    { key: 'pavarana', name: 'Pavarana', subtitle: 'Vassa Ends', color: T.teal, colorLight: T.tealLight, icon: '🌤️', type: 'vassa',
       desc: 'Pavarana marks the end of the Vassa retreat. Monastics invite each other to point out any faults seen, heard, or suspected \u2014 a ceremony of communal reflection and renewal.',
-      reminder: true,
-    });
-  }
-
-  if (holidays.kathinaStart) {
-    events.push({
-      id: id++, name: 'Kathina', subtitle: 'Robe Offering',
-      date: holidays.kathinaStart, dateStr: `${fmtDate(holidays.kathinaStart)} \u2013 ${fmtDate(holidays.kathinaEnd)}`,
-      color: T.saffron, colorLight: T.saffronLight, icon: '🧡', type: 'kathina',
+      getDate: (h) => h.pavarana ? h.pavarana.date : null, reminder: true },
+    { key: 'kathina', name: 'Kathina', subtitle: 'Robe Offering', color: T.saffron, colorLight: T.saffronLight, icon: '🧡', type: 'kathina',
       desc: 'Kathina is the annual robe-offering ceremony held within one month after Vassa ends. Lay supporters offer robes and requisites to monastics, generating great merit for both givers and receivers.',
-      reminder: true,
-    });
-  }
+      getDate: (h) => h.kathinaStart, reminder: true },
+  ];
+
+  EVENT_TEMPLATES.forEach(tmpl => {
+    const d = tmpl.getDate(holidays);
+    if (d) {
+      events.push({
+        name: tmpl.name, subtitle: tmpl.subtitle, date: d,
+        color: tmpl.color, colorLight: tmpl.colorLight, icon: tmpl.icon,
+        type: tmpl.type, desc: tmpl.desc, reminder: tmpl.reminder,
+      });
+    }
+  });
 
   // Bodhi Day is a fixed date (Mahayana tradition)
   events.push({
-    id: id++, name: 'Bodhi Day', subtitle: 'Enlightenment Day',
-    date: new Date(year, 11, 8), dateStr: 'Dec 8',
+    name: 'Bodhi Day', subtitle: 'Enlightenment Day',
+    date: new Date(year, 11, 8),
     color: T.purple, colorLight: T.purpleLight, icon: '🌳', type: 'bodhi',
     desc: 'Bodhi Day marks the date when Siddhartha Gautama sat beneath the Bodhi tree and attained full enlightenment, becoming the Buddha. Observed mainly in East Asian Buddhist traditions on December 8.',
     reminder: false,
   });
 
-  // Sort by date
-  events.sort((a, b) => a.date - b.date);
   return events;
+}
+
+function buildEvents() {
+  const now = new Date();
+  const year = now.getFullYear();
+  // Build events for current year + next year so there are always upcoming events
+  const thisYear = buildEventsForYear(year);
+  const nextYear = buildEventsForYear(year + 1);
+  const all = [...thisYear, ...nextYear];
+  // Sort by date and assign stable IDs
+  all.sort((a, b) => a.date - b.date);
+  all.forEach((ev, i) => { ev.id = i + 1; });
+  return all;
 }
 
 // ── UI Components ──
@@ -321,8 +307,10 @@ const TabBar = ({ active, onNav }) => {
     <div style={{
       position: 'absolute', bottom: 0, left: 0, right: 0,
       background: 'rgba(255,251,245,0.95)', backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       borderTop: `1px solid ${T.border}`,
-      display: 'flex', height: 88, paddingBottom: 20, zIndex: 100,
+      display: 'flex', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
+      paddingTop: 6, zIndex: 100,
     }}>
       {tabs.map((t) => {
         const a = t.key === active;
