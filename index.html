@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Buddhist Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #1c1917;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  ::-webkit-scrollbar { display: none; }
+  .phone {
+    width: 390px;
+    height: 844px;
+    max-height: calc(100vh - 40px);
+    background: #FFFBF5;
+    border-radius: 44px;
+    border: 10px solid #111;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 2px #2a2a2a;
+    overflow: hidden;
+    position: relative;
+  }
+  .notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 32px;
+    background: #111;
+    border-radius: 0 0 20px 20px;
+    z-index: 200;
+  }
+  .screen {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 90px;
+  }
+  @media (max-width: 430px) {
+    body { padding: 0; background: #FFFBF5; }
+    .phone { width: 100%; height: 100vh; max-height: 100vh; border: none; border-radius: 0; box-shadow: none; }
+    .notch { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const T = {
+  saffron: '#F59E0B', saffronLight: '#FEF3C7', saffronDark: '#D97706',
+  teal: '#0D9488', tealLight: '#CCFBF1',
+  purple: '#7C3AED', purpleLight: '#EDE9FE',
+  rose: '#E11D48', roseLight: '#FFE4E6',
+  blue: '#2563EB', blueLight: '#DBEAFE',
+  bg: '#FFFBF5', card: '#FFFFFF',
+  text: '#1C1917', textMuted: '#78716C', textFaint: '#A8A29E',
+  border: '#F5F0EB',
+  font: "'DM Sans', system-ui, sans-serif",
+  serif: "'DM Serif Display', Georgia, serif",
+};
+
+const INITIAL_EVENTS = [
+  { id: 1, name: 'Uposatha', subtitle: 'Full Moon', date: 'Apr 24', color: T.teal, colorLight: T.tealLight, icon: '🌕', type: 'uposatha', desc: 'The Uposatha (lunar observance day) is held on full moon, new moon, and quarter moon days. Lay practitioners keep the Eight Precepts and monastics recite the Patimokkha.', reminder: true },
+  { id: 2, name: 'Vesak', subtitle: 'Triple Gem Day', date: 'May 12', color: T.saffron, colorLight: T.saffronLight, icon: '☸️', type: 'vesak', desc: 'Vesak celebrates the birth, enlightenment (Bodhi), and passing (Parinirvana) of Gautama Buddha. It falls on the full moon of the fourth lunar month — the holiest day in the Buddhist year.', reminder: true },
+  { id: 3, name: 'Uposatha', subtitle: 'New Moon', date: 'May 26', color: T.teal, colorLight: T.tealLight, icon: '🌑', type: 'uposatha', desc: 'New moon Uposatha day. A time for reflection, meditation, and observing the precepts.', reminder: false },
+  { id: 4, name: 'Magha Puja', subtitle: 'Sangha Day', date: 'Jun 11', color: T.purple, colorLight: T.purpleLight, icon: '🪷', type: 'magha', desc: 'Magha Puja commemorates the spontaneous gathering of 1,250 Arahants who came to hear the Buddha teach the Ovada-Patimokkha — the heart of Buddhist teaching.', reminder: true },
+  { id: 5, name: 'Dharma Day', subtitle: 'First Teaching', date: 'Jul 10', color: T.blue, colorLight: T.blueLight, icon: '📿', type: 'dharma', desc: "Asalha Puja (Dharma Day) commemorates the Buddha's first teaching — the Dhammacakkappavattana Sutta — to the five ascetics in the Deer Park at Isipatana, setting the Wheel of Dhamma in motion.", reminder: true },
+  { id: 6, name: 'Vassa Begins', subtitle: 'Rains Retreat', date: 'Jul 11', color: T.teal, colorLight: T.tealLight, icon: '🌧️', type: 'vassa', desc: 'Vassa is the three-month Rains Retreat observed by Theravada monastics. Monks and nuns stay within a fixed location for 3 lunar months, engaging in intensive meditation practice.', reminder: true },
+  { id: 7, name: 'Ullambana', subtitle: 'Hungry Ghost Festival', date: 'Sep 6', color: T.rose, colorLight: T.roseLight, icon: '🕯️', type: 'ullambana', desc: 'Ullambana is observed on the 15th day of the 7th lunar month. Practitioners make offerings, chant sutras, and dedicate merit to ancestors and wandering spirits.', reminder: false },
+  { id: 8, name: 'Vassa Ends', subtitle: 'Pavarana Day', date: 'Oct 6', color: T.teal, colorLight: T.tealLight, icon: '🌤️', type: 'vassa', desc: 'Pavarana marks the end of the Vassa retreat. Monastics invite each other to point out any faults seen, heard, or suspected — a ceremony of communal reflection and renewal.', reminder: true },
+  { id: 9, name: 'Kathina', subtitle: 'Robe Offering', date: 'Oct 20', color: T.saffron, colorLight: T.saffronLight, icon: '🧡', type: 'kathina', desc: 'Kathina is the annual robe-offering ceremony held within one month after Vassa ends. Lay supporters offer robes and requisites to monastics, generating great merit for both givers and receivers.', reminder: true },
+  { id: 10, name: 'Bodhi Day', subtitle: 'Enlightenment Day', date: 'Dec 8', color: T.purple, colorLight: T.purpleLight, icon: '🌳', type: 'bodhi', desc: 'Bodhi Day marks the date when Siddhartha Gautama sat beneath the Bodhi tree and attained full enlightenment, becoming the Buddha. Observed mainly in East Asian Buddhist traditions.', reminder: false },
+];
+
+const UPOSATHA_DATES = [
+  { label: 'Full Moon', date: 'Apr 24', phase: '🌕' },
+  { label: 'Waning Quarter', date: 'May 1', phase: '🌖' },
+  { label: 'New Moon', date: 'May 8', phase: '🌑' },
+  { label: 'Waxing Quarter', date: 'May 15', phase: '🌒' },
+  { label: 'Full Moon', date: 'May 24', phase: '🌕' },
+  { label: 'Waning Quarter', date: 'Jun 1', phase: '🌖' },
+  { label: 'New Moon', date: 'Jun 6', phase: '🌑' },
+];
+
+const Screen = ({ children, bg = T.bg }) => (
+  <div className="screen" style={{ background: bg }}>{children}</div>
+);
+
+const TabBar = ({ active, onNav }) => {
+  const tabs = [
+    { label: 'Home', key: 'home', color: T.saffron, icon: (a) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" fill={a ? T.saffron : 'none'} stroke={a ? T.saffron : T.textFaint} strokeWidth="1.8" strokeLinejoin="round"/><path d="M9 21V12h6v9" stroke={a ? T.saffron : T.textFaint} strokeWidth="1.8" strokeLinecap="round"/></svg> },
+    { label: 'Calendar', key: 'calendar', color: T.saffron, icon: (a) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" stroke={a ? T.saffron : T.textFaint} strokeWidth="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke={a ? T.saffron : T.textFaint} strokeWidth="1.8" strokeLinecap="round"/><circle cx="8" cy="14" r="1.5" fill={a ? T.saffron : T.textFaint}/><circle cx="12" cy="14" r="1.5" fill={a ? T.saffron : T.textFaint}/><circle cx="16" cy="14" r="1.5" fill={a ? T.saffron : T.textFaint}/></svg> },
+    { label: 'Vassa', key: 'vassa', color: T.teal, icon: (a) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3C8 3 5 7 5 11c0 5 4 8 7 10 3-2 7-5 7-10 0-4-3-8-7-8z" fill={a ? T.teal : 'none'} stroke={a ? T.teal : T.textFaint} strokeWidth="1.8"/></svg> },
+    { label: 'Remind', key: 'reminders', color: T.purple, icon: (a) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a7 7 0 00-7 7c0 4-2 6-2 6h18s-2-2-2-6a7 7 0 00-7-7z" fill={a ? T.purple : 'none'} stroke={a ? T.purple : T.textFaint} strokeWidth="1.8" strokeLinejoin="round"/><path d="M10 19a2 2 0 004 0" stroke={a ? T.purple : T.textFaint} strokeWidth="1.8" strokeLinecap="round"/></svg> },
+  ];
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      background: 'rgba(255,251,245,0.92)', backdropFilter: 'blur(20px)',
+      borderTop: `1px solid ${T.border}`,
+      display: 'flex', height: 83, paddingBottom: 20, zIndex: 100,
+    }}>
+      {tabs.map((t) => {
+        const a = t.key === active;
+        return (
+          <div key={t.key} onClick={() => onNav(t.key)} style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 8,
+            cursor: 'pointer',
+          }}>
+            {t.icon(a)}
+            <span style={{ fontSize: 10, fontWeight: 500, color: a ? t.color : T.textFaint }}>{t.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+function HomeScreen({ onEvent }) {
+  const upcoming = INITIAL_EVENTS.slice(0, 4);
+  return (
+    <Screen>
+      <div style={{ padding: '56px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500, letterSpacing: 0.3 }}>MONDAY, APRIL 20</p>
+            <h1 style={{ fontFamily: T.serif, fontSize: 30, color: T.text, marginTop: 2 }}>Buddhist Calendar</h1>
+          </div>
+          <div style={{
+            width: 42, height: 42, borderRadius: 21,
+            background: `linear-gradient(135deg, ${T.saffron}, ${T.saffronDark})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 4px 12px ${T.saffron}50`,
+          }}>
+            <span style={{ fontSize: 20 }}>☸️</span>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 16,
+          background: `linear-gradient(135deg, ${T.saffron}15, ${T.teal}15)`,
+          border: `1px solid ${T.saffron}30`,
+          borderRadius: 16, padding: '12px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <p style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, letterSpacing: 0.5 }}>BUDDHIST ERA (BE)</p>
+            <p style={{ fontSize: 24, fontWeight: 700, color: T.text, letterSpacing: -0.5 }}>2569</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, letterSpacing: 0.5 }}>LUNAR MONTH</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: T.teal }}>Vaisakha 🌕</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 0' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 10 }}>COMING SOON</p>
+        <div onClick={() => onEvent(INITIAL_EVENTS[1])} style={{
+          background: `linear-gradient(135deg, #F59E0B, #D97706)`,
+          borderRadius: 20, padding: '20px',
+          boxShadow: '0 8px 24px #F59E0B40',
+          position: 'relative', overflow: 'hidden', cursor: 'pointer',
+        }}>
+          <div style={{ position: 'absolute', right: -20, top: -20, width: 110, height: 110, borderRadius: 55, background: 'rgba(255,255,255,0.12)' }} />
+          <div style={{ position: 'absolute', right: 20, top: 20, fontSize: 52, opacity: 0.35 }}>☸️</div>
+          <div style={{
+            display: 'inline-block', background: 'rgba(255,255,255,0.25)',
+            borderRadius: 100, padding: '3px 12px', fontSize: 11, fontWeight: 700,
+            color: '#fff', letterSpacing: 0.5, marginBottom: 8,
+          }}>22 DAYS AWAY</div>
+          <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 700, fontFamily: T.serif }}>Vesak Day</h2>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 3 }}>May 12 · Triple Gem Day</p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>Birth, Enlightenment & Parinirvana of the Buddha</p>
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 0' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>UPCOMING OBSERVANCES</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {upcoming.map(ev => (
+            <div key={ev.id} onClick={() => onEvent(ev)} style={{
+              background: T.card, borderRadius: 16, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 14,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              border: `1px solid ${T.border}`, cursor: 'pointer',
+            }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: 14,
+                background: ev.colorLight,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 22, flexShrink: 0,
+              }}>{ev.icon}</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: T.text }}>{ev.name}</p>
+                <p style={{ fontSize: 12, color: T.textMuted, marginTop: 1 }}>{ev.date} · {ev.subtitle}</p>
+              </div>
+              {ev.reminder && <div style={{ width: 8, height: 8, borderRadius: 4, background: ev.color, flexShrink: 0 }} />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ background: T.tealLight, borderRadius: 16, padding: '16px', border: `1px solid ${T.teal}20` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: T.teal, letterSpacing: 0.5, marginBottom: 6 }}>DAILY REFLECTION</p>
+          <p style={{ fontSize: 14, color: T.text, lineHeight: 1.6, fontStyle: 'italic' }}>
+            "Peace comes from within. Do not seek it without."
+          </p>
+          <p style={{ fontSize: 11, color: T.teal, marginTop: 6, fontWeight: 600 }}>— The Dhammapada</p>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function CalendarScreen({ onNav }) {
+  const days = ['S','M','T','W','T','F','S'];
+  const offset = 3;
+  const totalDays = 30;
+  const uposatha = [5, 12, 19, 24];
+
+  return (
+    <Screen>
+      <div style={{ padding: '56px 20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>Buddhist Era 2569</p>
+            <h1 style={{ fontFamily: T.serif, fontSize: 28, color: T.text, marginTop: 2 }}>April 2026</h1>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.border, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke={T.textMuted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ width: 36, height: 36, borderRadius: 18, background: T.saffron, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 10px ${T.saffron}50`, cursor: 'pointer' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          marginTop: 14, background: T.card, borderRadius: 14, padding: '10px 14px',
+          border: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: T.textMuted }}>Vaisakha — Lunar Month 5</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 16 }}>🌒</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Waxing</span>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, background: T.card, borderRadius: 20, padding: '16px', border: `1px solid ${T.border}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8 }}>
+            {days.map((d, i) => (
+              <div key={i} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: i===0||i===6 ? T.rose : T.textMuted, paddingBottom: 4 }}>{d}</div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px 0' }}>
+            {Array(offset).fill(null).map((_, i) => <div key={`e${i}`} />)}
+            {Array(totalDays).fill(null).map((_, i) => {
+              const day = i + 1;
+              const isToday = day === 20;
+              const isUpo = uposatha.includes(day);
+              const isMajor = day === 24;
+              return (
+                <div key={day} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '3px 0' }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 17,
+                    background: isToday ? T.saffron : isMajor ? T.teal : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: isToday ? `0 3px 8px ${T.saffron}50` : isMajor ? `0 3px 8px ${T.teal}40` : 'none',
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: isToday || isMajor ? 700 : 400, color: isToday || isMajor ? '#fff' : T.text }}>{day}</span>
+                  </div>
+                  <div style={{ width: 5, height: 5, borderRadius: 2.5, background: isUpo ? T.teal : 'transparent' }} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
+          {[['Today', T.saffron], ['Major Event', T.teal], ['Uposatha', T.teal]].map(([l, c]) => (
+            <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 5, background: c }} />
+              <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 500 }}>{l}</span>
+            </div>
+          ))}
+        </div>
+
+        <div onClick={() => onNav('uposatha')} style={{
+          marginTop: 16, background: T.tealLight, borderRadius: 14, padding: '12px 14px',
+          border: `1px solid ${T.teal}30`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+        }}>
+          <span style={{ fontSize: 20 }}>🌕</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: T.teal }}>View Uposatha Days</p>
+            <p style={{ fontSize: 11, color: T.textMuted }}>Eight Precepts & lunar observances</p>
+          </div>
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M2 2l6 6-6 6" stroke={T.teal} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginTop: 20, marginBottom: 10 }}>APRIL OBSERVANCES</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { date: 'Apr 5', phase: '🌒', label: 'Waxing Quarter Uposatha' },
+            { date: 'Apr 12', phase: '🌑', label: 'New Moon Uposatha' },
+            { date: 'Apr 19', phase: '🌖', label: 'Waning Quarter Uposatha' },
+            { date: 'Apr 24', phase: '🌕', label: 'Full Moon Uposatha' },
+          ].map(ev => (
+            <div key={ev.date} style={{
+              background: T.card, borderRadius: 12, padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              border: `1px solid ${T.border}`,
+            }}>
+              <span style={{ fontSize: 20 }}>{ev.phase}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ev.label}</p>
+                <p style={{ fontSize: 11, color: T.textMuted }}>{ev.date}</p>
+              </div>
+              <div style={{ width: 8, height: 8, borderRadius: 4, background: T.teal }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function EventDetailScreen({ event, onBack, onToggleReminder }) {
+  const ev = event;
+  const darkEnd = ev.color === T.saffron ? '#B45309'
+                : ev.color === T.teal ? '#0F766E'
+                : ev.color === T.purple ? '#5B21B6'
+                : ev.color === T.rose ? '#9F1239'
+                : ev.color === T.blue ? '#1E3A8A' : '#333';
+  return (
+    <Screen bg="#fff">
+      <div style={{
+        background: `linear-gradient(160deg, ${ev.color} 0%, ${darkEnd} 100%)`,
+        padding: '56px 24px 32px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: 80, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ position: 'absolute', right: 40, bottom: -40, width: 100, height: 100, borderRadius: 50, background: 'rgba(255,255,255,0.08)' }} />
+        <div onClick={onBack} style={{
+          width: 36, height: 36, borderRadius: 18,
+          background: 'rgba(255,255,255,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 20, cursor: 'pointer',
+        }}>
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="none"><path d="M8 2L2 8l6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>{ev.icon}</div>
+        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.25)', borderRadius: 100, padding: '4px 14px', fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 0.5, marginBottom: 10 }}>
+          {ev.type === 'uposatha' ? 'LUNAR OBSERVANCE' : 'MAJOR OBSERVANCE'}
+        </div>
+        <h1 style={{ color: '#fff', fontFamily: T.serif, fontSize: 34, lineHeight: 1.1 }}>{ev.name}</h1>
+        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 15, marginTop: 6 }}>{ev.subtitle} · {ev.date}, 2026</p>
+      </div>
+
+      <div style={{ padding: '24px 20px 0' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>ABOUT</p>
+        <p style={{ fontSize: 14, color: T.text, lineHeight: 1.7, marginBottom: 20 }}>{ev.desc}</p>
+
+        {ev.type === 'vesak' && (
+          <>
+            <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>THE THREE MIRACLES</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              {[
+                { icon: '🌱', title: 'Birth', desc: 'Born in Lumbini, Nepal (563 BCE)', color: T.teal },
+                { icon: '🌳', title: 'Enlightenment', desc: 'Attained Bodhi under the Bodhi tree', color: T.purple },
+                { icon: '🕊️', title: 'Parinirvana', desc: 'Passed into final Nirvana at Kushinagar', color: T.blue },
+              ].map(it => (
+                <div key={it.title} style={{
+                  background: T.bg, borderRadius: 14, padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  border: `1px solid ${T.border}`,
+                }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: it.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{it.icon}</div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{it.title}</p>
+                    <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>{it.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>HOW TO OBSERVE</p>
+        <div style={{ background: T.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}` }}>
+          {['Attend temple ceremonies', 'Keep the Eight Precepts', 'Offer flowers & candles', 'Make dana offerings', 'Practice meditation'].map((item, i, arr) => (
+            <div key={item} style={{
+              padding: '13px 16px',
+              borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: 3, background: ev.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 14, color: T.text }}>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        <div onClick={() => onToggleReminder(ev.id)} style={{
+          marginTop: 20, marginBottom: 40,
+          background: ev.reminder ? T.border : `linear-gradient(135deg, ${ev.color}, ${darkEnd})`,
+          borderRadius: 16, padding: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: ev.reminder ? 'none' : `0 6px 20px ${ev.color}40`, cursor: 'pointer',
+        }}>
+          <span style={{ fontSize: 18 }}>{ev.reminder ? '✓' : '🔔'}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: ev.reminder ? T.text : '#fff' }}>
+            {ev.reminder ? 'Reminder Set' : `Set Reminder · ${ev.name}`}
+          </span>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function UposathaScreen() {
+  return (
+    <Screen>
+      <div style={{ padding: '56px 20px 0' }}>
+        <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>Lunar Observances</p>
+        <h1 style={{ fontFamily: T.serif, fontSize: 30, color: T.text, marginTop: 2, marginBottom: 16 }}>Uposatha Days</h1>
+
+        <div style={{
+          background: `linear-gradient(135deg, ${T.teal}, #0F766E)`,
+          borderRadius: 20, padding: '20px',
+          boxShadow: `0 8px 24px ${T.teal}40`,
+          marginBottom: 16, position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', right: -15, top: -15, width: 90, height: 90, borderRadius: 45, background: 'rgba(255,255,255,0.1)' }} />
+          <span style={{ fontSize: 40, display: 'block', marginBottom: 8 }}>🌕</span>
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, marginBottom: 4 }}>WHAT ARE UPOSATHA DAYS?</p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 1.6 }}>
+            Uposatha are the four lunar observance days — full moon, new moon, and the two quarter moons. Lay practitioners observe the Eight Precepts; monastics recite the Patimokkha.
+          </p>
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>THE EIGHT PRECEPTS</p>
+        <div style={{ background: T.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, marginBottom: 16 }}>
+          {[
+            'Refrain from taking life',
+            'Refrain from taking what is not given',
+            'Refrain from sexual misconduct',
+            'Refrain from false speech',
+            'Refrain from intoxicants',
+            'Refrain from eating after noon',
+            'Refrain from entertainment & adornments',
+            'Refrain from high or luxurious seats',
+          ].map((p, i, arr) => (
+            <div key={i} style={{
+              padding: '12px 16px',
+              borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
+              display: 'flex', gap: 12, alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: T.teal, background: T.tealLight, borderRadius: 6, padding: '2px 6px', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
+              <p style={{ fontSize: 13, color: T.text, lineHeight: 1.5 }}>{p}</p>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>UPCOMING UPOSATHA</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {UPOSATHA_DATES.map((u, i) => (
+            <div key={i} style={{
+              background: i === 0 ? T.tealLight : T.card,
+              borderRadius: 12, padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              border: `1px solid ${i === 0 ? T.teal + '40' : T.border}`,
+            }}>
+              <span style={{ fontSize: 22 }}>{u.phase}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{u.label}</p>
+                <p style={{ fontSize: 11, color: T.textMuted }}>{u.date}</p>
+              </div>
+              {i === 0 && <span style={{ fontSize: 10, fontWeight: 700, color: T.teal, background: T.teal + '20', borderRadius: 100, padding: '3px 10px' }}>NEXT</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function VassaScreen() {
+  const days = 88;
+  const total = 92;
+  const pct = Math.round((days / total) * 100);
+  const [intentions, setIntentions] = React.useState([
+    { text: 'Daily sitting meditation', done: true },
+    { text: 'Read one Dhamma book', done: true },
+    { text: 'Observe Uposatha precepts', done: false },
+    { text: 'Weekly dana offering', done: false },
+  ]);
+  const toggle = (i) => setIntentions(intentions.map((it, idx) => idx === i ? { ...it, done: !it.done } : it));
+
+  return (
+    <Screen>
+      <div style={{ padding: '56px 20px 0' }}>
+        <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>Rains Retreat</p>
+        <h1 style={{ fontFamily: T.serif, fontSize: 30, color: T.text, marginTop: 2, marginBottom: 16 }}>Vassa 2025</h1>
+
+        <div style={{
+          background: `linear-gradient(160deg, ${T.teal}15, ${T.tealLight})`,
+          border: `1px solid ${T.teal}25`, borderRadius: 24,
+          padding: '24px', textAlign: 'center', marginBottom: 16,
+        }}>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <svg width="160" height="160" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="68" fill="none" stroke={T.tealLight} strokeWidth="12"/>
+              <circle cx="80" cy="80" r="68" fill="none" stroke={T.teal} strokeWidth="12"
+                strokeDasharray={`${2 * Math.PI * 68}`}
+                strokeDashoffset={`${2 * Math.PI * 68 * (1 - pct/100)}`}
+                strokeLinecap="round"
+                transform="rotate(-90 80 80)"/>
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 36, fontWeight: 700, color: T.teal }}>{pct}%</span>
+              <span style={{ fontSize: 12, color: T.teal, fontWeight: 600 }}>Complete</span>
+            </div>
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 700, color: T.text, marginTop: 12 }}>Day {days} of {total}</p>
+          <p style={{ fontSize: 13, color: T.textMuted, marginTop: 4 }}>Ends October 6, 2025 · Pavarana Day</p>
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>VASSA TIMELINE</p>
+        <div style={{ position: 'relative', paddingLeft: 28 }}>
+          <div style={{ position: 'absolute', left: 9, top: 0, bottom: 0, width: 2, background: `linear-gradient(${T.teal}, ${T.saffron})`, borderRadius: 1 }} />
+          {[
+            { icon: '🌧️', label: 'Vassa Begins', date: 'Jul 11, 2025', done: true, color: T.teal },
+            { icon: '🧘', label: 'Mid-Vassa', date: 'Aug 20, 2025', done: true, color: T.purple },
+            { icon: '🌤️', label: 'Pavarana (End)', date: 'Oct 6, 2025', done: false, color: T.teal },
+            { icon: '🧡', label: 'Kathina Season Opens', date: 'Oct 7–Nov 4', done: false, color: T.saffron },
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', gap: 14, marginBottom: 16, alignItems: 'flex-start' }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 10, flexShrink: 0,
+                background: item.done ? item.color : '#fff',
+                border: `2px solid ${item.color}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginLeft: -19,
+                boxShadow: `0 0 0 3px ${T.bg}`,
+              }}>
+                {item.done && <div style={{ width: 8, height: 8, borderRadius: 4, background: '#fff' }} />}
+              </div>
+              <div style={{ background: T.card, borderRadius: 14, padding: '12px 14px', flex: 1, border: `1px solid ${T.border}` }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{item.label}</p>
+                </div>
+                <p style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>{item.date}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>MY VASSA INTENTIONS</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {intentions.map((item, i) => (
+            <div key={i} onClick={() => toggle(i)} style={{
+              background: item.done ? T.tealLight : T.card,
+              borderRadius: 12, padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: 12,
+              border: `1px solid ${item.done ? T.teal + '30' : T.border}`,
+              cursor: 'pointer',
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 11,
+                background: item.done ? T.teal : 'transparent',
+                border: `2px solid ${item.done ? T.teal : T.textFaint}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {item.done && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </div>
+              <p style={{ fontSize: 14, color: item.done ? T.teal : T.text, fontWeight: item.done ? 600 : 400, textDecoration: item.done ? 'line-through' : 'none', textDecorationColor: T.teal+'80' }}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function RemindersScreen({ events, onToggleReminder, onEvent }) {
+  const [allOn, setAllOn] = React.useState(true);
+  return (
+    <Screen>
+      <div style={{ padding: '56px 20px 0' }}>
+        <p style={{ fontSize: 13, color: T.textMuted, fontWeight: 500 }}>Notifications</p>
+        <h1 style={{ fontFamily: T.serif, fontSize: 30, color: T.text, marginTop: 2, marginBottom: 20 }}>Reminders</h1>
+
+        <div onClick={() => setAllOn(!allOn)} style={{
+          background: T.purpleLight, borderRadius: 18, padding: '16px 18px',
+          border: `1px solid ${T.purple}25`, marginBottom: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+        }}>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: T.text }}>🔔 All Reminders</p>
+            <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>Notify before each observance</p>
+          </div>
+          <div style={{
+            width: 50, height: 30, borderRadius: 15,
+            background: allOn ? T.purple : '#ddd',
+            display: 'flex', alignItems: 'center', padding: '3px',
+            boxShadow: allOn ? `0 2px 8px ${T.purple}50` : 'none',
+            justifyContent: allOn ? 'flex-end' : 'flex-start',
+            transition: 'all 0.2s',
+          }}>
+            <div style={{ width: 24, height: 24, borderRadius: 12, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
+          </div>
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginBottom: 12 }}>UPCOMING EVENTS</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {events.map(ev => (
+            <div key={ev.id} style={{
+              background: T.card, borderRadius: 16, padding: '14px 16px',
+              border: `1px solid ${T.border}`,
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <div onClick={() => onEvent(ev)} style={{
+                width: 44, height: 44, borderRadius: 13,
+                background: ev.colorLight,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, flexShrink: 0, cursor: 'pointer',
+              }}>{ev.icon}</div>
+              <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => onEvent(ev)}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{ev.name}</p>
+                <p style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{ev.date} · {ev.subtitle}</p>
+                {ev.reminder && <p style={{ fontSize: 10, color: ev.color, fontWeight: 600, marginTop: 3 }}>3 days before</p>}
+              </div>
+              <div onClick={() => onToggleReminder(ev.id)} style={{
+                width: 44, height: 26, borderRadius: 13,
+                background: ev.reminder ? ev.color : T.border,
+                display: 'flex', alignItems: 'center', padding: '3px',
+                justifyContent: ev.reminder ? 'flex-end' : 'flex-start',
+                boxShadow: ev.reminder ? `0 2px 6px ${ev.color}50` : 'none',
+                flexShrink: 0, transition: 'all 0.2s', cursor: 'pointer',
+              }}>
+                <div style={{ width: 20, height: 20, borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.textMuted, letterSpacing: 0.8, marginTop: 20, marginBottom: 12 }}>ADVANCE NOTICE</p>
+        <div style={{ background: T.card, borderRadius: 16, overflow: 'hidden', border: `1px solid ${T.border}`, marginBottom: 20 }}>
+          {[['Major Festivals', '3 days before'], ['Uposatha Days', '1 day before'], ['Vassa Events', '1 week before'], ['Kathina Season', '2 weeks before']].map(([label, timing], i, arr) => (
+            <div key={label} style={{
+              padding: '14px 16px',
+              borderBottom: i < arr.length - 1 ? `1px solid ${T.border}` : 'none',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 14, color: T.text }}>{label}</span>
+              <span style={{ fontSize: 13, color: T.saffron, fontWeight: 600 }}>{timing}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+function App() {
+  const [route, setRoute] = React.useState({ name: 'home' });
+  const [events, setEvents] = React.useState(INITIAL_EVENTS);
+
+  const toggleReminder = (id) => {
+    setEvents(events.map(e => e.id === id ? { ...e, reminder: !e.reminder } : e));
+    if (route.name === 'event') {
+      const updated = events.find(e => e.id === id);
+      if (updated) setRoute({ name: 'event', event: { ...updated, reminder: !updated.reminder } });
+    }
+  };
+
+  const openEvent = (ev) => {
+    const fresh = events.find(x => x.id === ev.id) || ev;
+    setRoute({ name: 'event', event: fresh });
+  };
+
+  const nav = (key) => setRoute({ name: key });
+
+  let content;
+  let tab = route.name;
+  if (route.name === 'home') content = <HomeScreen onEvent={openEvent} />;
+  else if (route.name === 'calendar') content = <CalendarScreen onNav={nav} />;
+  else if (route.name === 'uposatha') { content = <UposathaScreen />; tab = 'calendar'; }
+  else if (route.name === 'vassa') content = <VassaScreen />;
+  else if (route.name === 'reminders') content = <RemindersScreen events={events} onToggleReminder={toggleReminder} onEvent={openEvent} />;
+  else if (route.name === 'event') { content = <EventDetailScreen event={route.event} onBack={() => setRoute({ name: 'home' })} onToggleReminder={toggleReminder} />; tab = 'home'; }
+
+  return (
+    <div className="phone">
+      <div className="notch" />
+      {content}
+      <TabBar active={tab} onNav={nav} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
